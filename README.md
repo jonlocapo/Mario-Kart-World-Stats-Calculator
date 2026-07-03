@@ -26,18 +26,6 @@ vehicles that share an identical stat line are grouped onto one row.
 
 Just open `index.html` in any browser. That's it.
 
-## Free hosting with GitHub Pages
-
-GitHub Pages hosts static sites like this one **for free**. To turn this repo into a live website:
-
-1. On GitHub, go to the repo's **Settings → Pages**.
-2. Under **Build and deployment → Source**, choose **Deploy from a branch**.
-3. Pick the branch that has `index.html` and the folder **`/ (root)`**, then **Save**.
-4. Wait ~1 minute; the page will be published at
-   `https://<your-username>.github.io/Mario-Kart-World-Stats-Calculator/`.
-
-No payment or extra setup is required — Pages is free for public repositories.
-
 ## Data source
 
 Stat values are community stat rips for Mario Kart World (base character values plus vehicle
