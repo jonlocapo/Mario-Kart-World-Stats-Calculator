@@ -2,310 +2,363 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mario Kart World Stats Calculator</title>
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 12px; color: #111; background: #fff; line-height: 1.35; }
-  h1 { font-size: 20px; margin: 4px 0 2px; }
-  h2 { font-size: 16px; margin: 18px 0 6px; border-bottom: 2px solid #333; padding-bottom: 2px; }
-  .sub { color: #555; font-size: 12px; margin: 0 0 8px; }
-  section { max-width: 1000px; margin: 0 auto 6px; }
-  .wrap { max-width: 1000px; margin: 0 auto; }
-  select, button { font-size: 14px; padding: 3px 4px; }
-  button { cursor: pointer; }
-  label { font-size: 13px; }
-  table { border-collapse: collapse; font-size: 12px; width: 100%; }
-  th, td { border: 1px solid #ccc; padding: 2px 5px; text-align: center; }
-  th { background: #eee; position: sticky; top: 0; }
-  td.name, th.name { text-align: left; white-space: nowrap; }
-  .bar { display: inline-block; height: 11px; background: #2a7; vertical-align: middle; }
-  .barbg { display: inline-block; width: 120px; height: 11px; background: #e3e3e3; vertical-align: middle; border: 1px solid #ccc; }
-  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
-  .col { flex: 1 1 300px; min-width: 280px; }
-  .statline { display: grid; grid-template-columns: 130px 130px 40px; align-items: center; gap: 6px; margin: 2px 0; font-size: 13px; }
-  .up { color: #0a0; font-weight: bold; }
-  .down { color: #c00; }
-  .scrollx { overflow-x: auto; }
-  .tblbox { max-height: 340px; overflow: auto; border: 1px solid #ccc; }
-  .note { font-size: 12px; color: #555; }
-  .frontier td { background: #fff3cc; }
-  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 8px; }
-  fieldset { border: 1px solid #ccc; padding: 6px 8px; margin: 6px 0; }
-  legend { font-size: 12px; color: #444; }
-  code { background: #f0f0f0; padding: 1px 3px; }
-  svg { max-width: 100%; height: auto; }
-  details > summary { cursor: pointer; font-weight: bold; font-size: 14px; margin: 6px 0; }
+  body { font-family: Verdana, Geneva, sans-serif; font-size: 12px; margin: 6px; color: #000; background: #fff; }
+  h1 { font-size: 15px; margin: 2px 0; }
+  a { color: #0000cc; }
+  .intro { font-size: 11px; max-width: 1020px; margin-bottom: 6px; }
+
+  .panel {
+    position: relative;
+    background-color: #CCC;
+    border: 1px solid black;
+    display: inline-block;
+    vertical-align: top;
+    margin: 0 5px 5px 0;
+    overflow: hidden;
+  }
+  .panelTitle {
+    text-align: center; font-weight: bold; font-size: 12px;
+    border-bottom: 1px solid black; padding: 2px; background: #bbb;
+  }
+  .pad { padding: 6px; }
+
+  /* --- part pickers (list boxes) --- */
+  .partColumn { display: inline-block; vertical-align: top; margin-right: 8px; font-weight: bold; }
+  .partTitle { text-align: center; font-size: 12px; }
+  select.parts { width: 150px; height: 168px; font-size: 11px; }
+
+  /* --- meters --- */
+  .meterGrid { display: grid; grid-template-columns: auto auto; gap: 1px 14px; margin-top: 6px; }
+  .meterRow { display: grid; grid-template-columns: 96px 116px 26px; align-items: center; font-size: 11px; height: 18px; }
+  .meterRow .t { text-align: right; padding-right: 5px; }
+  .meterRow .v { font-weight: bold; text-align: left; padding-left: 4px; }
+  canvas.meter { background-color: #888; border: 1px solid black; display: block; }
+
+  /* --- conditions (find better) --- */
+  .condRow { display: grid; grid-template-columns: 130px 1fr; align-items: center; height: 20px;
+             border-bottom: 1px solid #999; font-size: 11px; font-weight: bold; }
+  .condRow .ct { text-align: right; padding-right: 6px; }
+  .condRow .co { font-weight: normal; }
+  .condRow .co label { margin-right: 4px; white-space: nowrap; }
+  .yourval { color: #333; font-weight: normal; }
+
+  /* --- results / reference rows coloured by weight class --- */
+  .rowLight  { background-color: #85E0E0; }
+  .rowMedium { background-color: #66C266; }
+  .rowHeavy  { background-color: #CA4747; }
+  table.results { border-collapse: collapse; font-size: 11px; width: 100%; }
+  table.results th, table.results td { border: 1px solid black; padding: 1px 4px; text-align: center; white-space: nowrap; }
+  table.results td.n, table.results th.n { text-align: left; }
+  table.results th { background: #bbb; position: sticky; top: 0; }
+  .up { color: #060; font-weight: bold; }
+  .down { color: #a00; }
+  .box { max-height: 300px; overflow: auto; border: 1px solid black; background: #fff; }
+
+  .grpBlock { border-bottom: 1px solid black; padding: 1px 4px; font-size: 11px; }
+  .grpBlock b { display: inline-block; min-width: 150px; }
+
+  select.stat { font-size: 11px; }
+  .note { font-size: 11px; color: #222; max-width: 1020px; }
+  .legend span { display: inline-block; width: 11px; height: 11px; border: 1px solid black; vertical-align: middle; margin: 0 2px 0 8px; }
 </style>
 
-<div class="wrap">
-  <h1>Mario Kart World — Stats Calculator</h1>
-  <p class="sub">Pick a character &amp; vehicle to see combined stats, explore the Pareto frontier of any two stats, and search for builds that beat yours. Pure HTML/JS, no dependencies. Data: community stat rips (see bottom).</p>
+<h1>Mario Kart World — Stats Calculator</h1>
+<div class="intro">
+  Pick a character &amp; vehicle to read the combined stats, plot the Pareto frontier of any two stats,
+  and search for builds that beat yours. Single static page, no dependencies. Styled after the classic
+  MK8DX stat calculator. A build's stat = character value + vehicle value.
+  <label style="font-weight:bold; margin-left:8px;"><input type="checkbox" id="indivToggle"> list individual characters/vehicles (not grouped)</label>
 </div>
 
 <!-- ============ BUILDER ============ -->
-<section>
-  <h2>1 · Builder</h2>
-  <div class="controls">
-    <label>Character:
-      <select id="b-char"></select>
-    </label>
-    <label>Vehicle:
-      <select id="b-kart"></select>
-    </label>
-  </div>
-  <div class="row">
-    <div class="col" id="b-stats"></div>
-    <div class="col">
-      <div class="note" id="b-members"></div>
+<div class="panel">
+  <div class="panelTitle">Builder</div>
+  <div class="pad">
+    <div class="partColumn">
+      <div class="partTitle">Character</div>
+      <select id="b-char" class="parts" size="2"></select>
     </div>
+    <div class="partColumn">
+      <div class="partTitle">Vehicle</div>
+      <select id="b-kart" class="parts" size="2"></select>
+    </div>
+    <div class="meterGrid" id="b-meters"></div>
+    <div class="legend" style="margin-top:6px;font-size:11px;">
+      Meter fill: <span style="background:yellow"></span>overall
+      <span style="background:#fff"></span>road <span style="background:#47FF47"></span>off-road
+      <span style="background:#35359D"></span>water &nbsp;(4 segments = the game's 4 bars, out of 20)
+    </div>
+    <div class="note" id="b-members" style="margin-top:6px;"></div>
   </div>
-</section>
+</div>
 
 <!-- ============ PARETO ============ -->
-<section>
-  <h2>2 · Pareto Frontier (two stats)</h2>
-  <p class="sub">The frontier = builds where you can't improve one axis without giving up the other. E.g. set X = Speed, Y = Acceleration to read off the best mini-turbo available at each speed. Both axes treated as "higher is better".</p>
-  <div class="controls">
-    <label>X axis: <select id="p-x"></select></label>
-    <label>Y axis: <select id="p-y"></select></label>
-    <label><input type="checkbox" id="p-onlyfront" checked> table shows frontier only</label>
-  </div>
-  <div class="row">
-    <div class="col" style="flex:0 0 auto"><div id="p-plot"></div></div>
-    <div class="col">
-      <div class="tblbox"><table id="p-table"></table></div>
+<div class="panel" style="width:auto;">
+  <div class="panelTitle">Pareto Frontier — two stats</div>
+  <div class="pad">
+    <div style="font-size:11px;margin-bottom:4px;">
+      X: <select id="p-x" class="stat"></select>
+      &nbsp; Y: <select id="p-y" class="stat"></select>
+      &nbsp; <label><input type="checkbox" id="p-onlyfront" checked> table = frontier only</label>
+      &nbsp; <span class="note">(both axes: higher = better; e.g. best mini-turbo per speed)</span>
+    </div>
+    <div style="display:inline-block;vertical-align:top;background:#fff;border:1px solid black;">
+      <div id="p-plot"></div>
+    </div>
+    <div style="display:inline-block;vertical-align:top;width:430px;">
+      <div class="box" style="max-height:300px;"><table class="results" id="p-table"></table></div>
     </div>
   </div>
-</section>
+</div>
 
 <!-- ============ FINDER ============ -->
-<section>
-  <h2>3 · Combo Finder — beat your build</h2>
-  <p class="sub">Choose a base build, then say which stats must improve (&gt;) or at least stay equal (≥). Optionally require a true upgrade (never worse in anything).</p>
-  <div class="controls">
-    <label>Base character: <select id="f-char"></select></label>
-    <label>Base vehicle: <select id="f-kart"></select></label>
-    <label><input type="checkbox" id="f-strict"> only true upgrades (not worse in ANY stat)</label>
-    <button id="f-go">Find builds</button>
+<div class="panel" style="width:auto;">
+  <div class="panelTitle">Find Better Builds</div>
+  <div class="pad">
+    <div style="font-size:11px;margin-bottom:6px;">
+      Base build:
+      <select id="f-char" class="stat"></select>
+      <select id="f-kart" class="stat"></select>
+      &nbsp; <label style="font-weight:bold;"><input type="checkbox" id="f-strict"> only true upgrades (never worse in any stat)</label>
+      &nbsp; <button id="f-go">Search</button>
+    </div>
+    <div style="display:inline-block;vertical-align:top;width:430px;margin-right:8px;">
+      <div id="f-conditions" style="border:1px solid black;background:#eee;"></div>
+      <div class="note" style="margin-top:3px;">For each stat pick a relation the result must satisfy vs your base (n/a = ignore).</div>
+    </div>
+    <div style="display:inline-block;vertical-align:top;width:560px;">
+      <div class="note" id="f-count" style="font-weight:bold;margin-bottom:2px;"></div>
+      <div class="box" style="max-height:280px;"><table class="results" id="f-results"></table></div>
+    </div>
   </div>
-  <div class="scrollx"><table id="f-criteria"></table></div>
-  <p class="note" id="f-count"></p>
-  <div class="tblbox"><table id="f-results"></table></div>
-</section>
+</div>
 
 <!-- ============ REFERENCE ============ -->
-<section>
-  <h2>4 · Reference tables</h2>
-  <details>
-    <summary>Character stat groups (click to expand)</summary>
-    <div class="scrollx"><table id="ref-char"></table></div>
-  </details>
-  <details>
-    <summary>Vehicle stat groups (click to expand)</summary>
-    <div class="scrollx"><table id="ref-kart"></table></div>
-  </details>
-  <p class="note">
-    Characters and vehicles that share a stat line are listed together on one row.
-    Speed &amp; Handling each split into three terrain types: <b>Road</b> (solid), <b>Off-Road</b> (coarse/rough), <b>Water</b> (liquid).
-    A build's stat = character value + vehicle value.
-    <b>Accel</b> also governs mini-turbo; <b>Weight</b> also affects coin capacity.
-  </p>
-</section>
+<div class="panel" style="width:auto;">
+  <div class="panelTitle">Stat Groups (reference)</div>
+  <div class="pad">
+    <div style="display:inline-block;vertical-align:top;width:520px;margin-right:10px;">
+      <div style="font-weight:bold;font-size:11px;">Characters</div>
+      <div class="box" id="ref-char"></div>
+    </div>
+    <div style="display:inline-block;vertical-align:top;width:520px;">
+      <div style="font-weight:bold;font-size:11px;">Vehicles</div>
+      <div class="box" id="ref-kart"></div>
+    </div>
+    <div class="note" style="margin-top:6px;">
+      Rows share a colour by weight class:
+      <span style="background:#85E0E0;padding:0 6px;border:1px solid #000;">light</span>
+      <span style="background:#66C266;padding:0 6px;border:1px solid #000;">medium</span>
+      <span style="background:#CA4747;padding:0 6px;border:1px solid #000;">heavy</span>.
+      Speed &amp; Handling split into Road / Off-Road / Water. Accel also drives mini-turbo; Weight also affects coins.
+    </div>
+  </div>
+</div>
+
+<div class="note" style="margin-top:10px;">
+  Data: community stat rips for Mario Kart World (character base + vehicle modifier across the three terrain
+  sub-stats). To update after a patch, edit the <code>CHARS</code>/<code>KARTS</code> arrays at the top of the script.
+</div>
 
 <script>
-/* ---------- DATA (community stat rips; character = base, vehicle = modifier, summed) ---------- */
+/* ---------- DATA ---------- */
 const CHARS = [{"members":["Baby Peach","Baby Daisy","Swooper","Para-Biddybud"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":0,"accel":7,"weight":0,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Baby Mario","Goomba","Spike"],"solidSpeed":1,"coarseSpeed":0,"liquidSpeed":0,"accel":6,"weight":1,"solidHandling":7,"coarseHandling":5,"liquidHandling":5},{"members":["Baby Luigi","Dry Bones","Peepa"],"solidSpeed":0,"coarseSpeed":1,"liquidSpeed":0,"accel":6,"weight":1,"solidHandling":5,"coarseHandling":7,"liquidHandling":5},{"members":["Baby Rosalina","Sidestepper","Fishbone"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":1,"accel":6,"weight":1,"solidHandling":5,"coarseHandling":5,"liquidHandling":7},{"members":["Toadette","Nabbit"],"solidSpeed":2,"coarseSpeed":1,"liquidSpeed":1,"accel":5,"weight":2,"solidHandling":6,"coarseHandling":4,"liquidHandling":4},{"members":["Toad","Shy Guy","Stingby"],"solidSpeed":1,"coarseSpeed":2,"liquidSpeed":1,"accel":5,"weight":2,"solidHandling":4,"coarseHandling":6,"liquidHandling":4},{"members":["Koopa Troopa","Lakitu","Cheep Cheep"],"solidSpeed":1,"coarseSpeed":1,"liquidSpeed":2,"accel":5,"weight":2,"solidHandling":4,"coarseHandling":4,"liquidHandling":6},{"members":["Peach","Daisy","Coin Coffer"],"solidSpeed":3,"coarseSpeed":2,"liquidSpeed":2,"accel":4,"weight":3,"solidHandling":5,"coarseHandling":3,"liquidHandling":3},{"members":["Yoshi","Monty Mole"],"solidSpeed":2,"coarseSpeed":3,"liquidSpeed":2,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":5,"liquidHandling":3},{"members":["Bowser Jr.","Dolphin"],"solidSpeed":2,"coarseSpeed":2,"liquidSpeed":3,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":5},{"members":["Mario","Rocky Wrench"],"solidSpeed":4,"coarseSpeed":3,"liquidSpeed":3,"accel":3,"weight":4,"solidHandling":4,"coarseHandling":2,"liquidHandling":2},{"members":["Luigi","Hammer Bro","Pokey"],"solidSpeed":3,"coarseSpeed":4,"liquidSpeed":3,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":4,"liquidHandling":2},{"members":["Birdo","Penguin"],"solidSpeed":3,"coarseSpeed":3,"liquidSpeed":4,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":2,"liquidHandling":4},{"members":["Pauline","Snowman","Piranha Plant"],"solidSpeed":5,"coarseSpeed":4,"liquidSpeed":4,"accel":2,"weight":5,"solidHandling":3,"coarseHandling":1,"liquidHandling":1},{"members":["King Boo","Conkdor"],"solidSpeed":4,"coarseSpeed":5,"liquidSpeed":4,"accel":2,"weight":5,"solidHandling":1,"coarseHandling":3,"liquidHandling":1},{"members":["Rosalina","Cataquack"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":5,"accel":2,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":3},{"members":["Wario","Wiggler"],"solidSpeed":6,"coarseSpeed":5,"liquidSpeed":5,"accel":1,"weight":6,"solidHandling":2,"coarseHandling":0,"liquidHandling":0},{"members":["Cow","Donkey Kong","Chargin' Chuck"],"solidSpeed":5,"coarseSpeed":6,"liquidSpeed":5,"accel":1,"weight":6,"solidHandling":0,"coarseHandling":2,"liquidHandling":0},{"members":["Waluigi","Pianta"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":6,"accel":1,"weight":6,"solidHandling":0,"coarseHandling":0,"liquidHandling":2},{"members":["Bowser"],"solidSpeed":6,"coarseSpeed":6,"liquidSpeed":6,"accel":0,"weight":7,"solidHandling":0,"coarseHandling":0,"liquidHandling":0}];
 const KARTS = [{"members":["Mach Rocket","R.O.B. H.O.G."],"solidSpeed":6,"coarseSpeed":1,"liquidSpeed":1,"accel":7,"weight":0,"solidHandling":10,"coarseHandling":6,"liquidHandling":6},{"members":["Rally Bike","Hyper Pipe"],"solidSpeed":0,"coarseSpeed":5,"liquidSpeed":0,"accel":8,"weight":0,"solidHandling":0,"coarseHandling":10,"liquidHandling":6},{"members":["Fin Twin","Dolphin Dasher"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":5,"accel":8,"weight":0,"solidHandling":6,"coarseHandling":6,"liquidHandling":10},{"members":["Baby Blooper"],"solidSpeed":7,"coarseSpeed":2,"liquidSpeed":2,"accel":6,"weight":1,"solidHandling":9,"coarseHandling":5,"liquidHandling":5},{"members":["Biddybuggy (Buggybud)"],"solidSpeed":1,"coarseSpeed":6,"liquidSpeed":1,"accel":7,"weight":0,"solidHandling":5,"coarseHandling":9,"liquidHandling":5},{"members":["Roadster Royale","B-Dasher","Hot Rod","Bumble V"],"solidSpeed":8,"coarseSpeed":4,"liquidSpeed":4,"accel":4,"weight":3,"solidHandling":8,"coarseHandling":3,"liquidHandling":3},{"members":["Zoom Buggy","Rally Kart"],"solidSpeed":4,"coarseSpeed":8,"liquidSpeed":4,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":8,"liquidHandling":3},{"members":["Cloud 9","Ribbit Revster","Carpet Flyer"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":8,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":8},{"members":["Billdozer","Big Horn"],"solidSpeed":9,"coarseSpeed":6,"liquidSpeed":6,"accel":2,"weight":5,"solidHandling":7,"coarseHandling":1,"liquidHandling":1},{"members":["Bowser Bruiser","Li'l Dumpy","Tiny Titan (Rally Romper)","Chargin Truck"],"solidSpeed":7,"coarseSpeed":10,"liquidSpeed":7,"accel":1,"weight":5,"solidHandling":1,"coarseHandling":7,"liquidHandling":1},{"members":["Mecha Trike"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":10,"accel":1,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":7},{"members":["Rallygator"],"solidSpeed":9,"coarseSpeed":6,"liquidSpeed":6,"accel":3,"weight":6,"solidHandling":5,"coarseHandling":0,"liquidHandling":0},{"members":["Lobster Roller"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":10,"accel":2,"weight":6,"solidHandling":0,"coarseHandling":0,"liquidHandling":5},{"members":["Standard Bike","Cute Scoot","Tune Thumper"],"solidSpeed":1,"coarseSpeed":1,"liquidSpeed":1,"accel":9,"weight":0,"solidHandling":7,"coarseHandling":7,"liquidHandling":7},{"members":["Pipe Frame"],"solidSpeed":2,"coarseSpeed":2,"liquidSpeed":2,"accel":8,"weight":1,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Loco Moto"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":4,"accel":6,"weight":1,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Blastronaut III"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":5,"accel":6,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":3},{"members":["Standard Kart","Plushbuggy"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":5,"accel":5,"weight":2,"solidHandling":5,"coarseHandling":5,"liquidHandling":5},{"members":["W-Twin Chopper"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":7,"accel":3,"weight":2,"solidHandling":5,"coarseHandling":5,"liquidHandling":5},{"members":["Reel Racer"],"solidSpeed":8,"coarseSpeed":8,"liquidSpeed":8,"accel":2,"weight":3,"solidHandling":4,"coarseHandling":4,"liquidHandling":4},{"members":["Junkyard Hog"],"solidSpeed":8,"coarseSpeed":8,"liquidSpeed":8,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":2,"liquidHandling":2},{"members":["Funky Dorrie"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":8,"accel":5,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":6},{"members":["Dread Sled"],"solidSpeed":3,"coarseSpeed":9,"liquidSpeed":5,"accel":3,"weight":3,"solidHandling":3,"coarseHandling":9,"liquidHandling":4},{"members":["Stellar Sled"],"solidSpeed":6,"coarseSpeed":8,"liquidSpeed":11,"accel":0,"weight":5,"solidHandling":1,"coarseHandling":2,"liquidHandling":8}];
 
 const RAW = ["solidSpeed","coarseSpeed","liquidSpeed","accel","weight","solidHandling","coarseHandling","liquidHandling"];
-/* stats exposed in UI (aggregates computed on demand) */
 const STATS = [
-  {key:"speed",         label:"Speed (avg)",        parts:["solidSpeed","coarseSpeed","liquidSpeed"]},
+  {key:"speed",         label:"Speed (avg)",   parts:["solidSpeed","coarseSpeed","liquidSpeed"]},
   {key:"solidSpeed",    label:"Road Speed"},
   {key:"coarseSpeed",   label:"Off-Road Speed"},
   {key:"liquidSpeed",   label:"Water Speed"},
-  {key:"accel",         label:"Acceleration / Mini-Turbo"},
-  {key:"weight",        label:"Weight / Coins"},
-  {key:"handling",      label:"Handling (avg)",     parts:["solidHandling","coarseHandling","liquidHandling"]},
+  {key:"accel",         label:"Acceleration"},
+  {key:"weight",        label:"Weight"},
+  {key:"handling",      label:"Handling (avg)", parts:["solidHandling","coarseHandling","liquidHandling"]},
   {key:"solidHandling", label:"Road Handling"},
   {key:"coarseHandling",label:"Off-Road Handling"},
   {key:"liquidHandling",label:"Water Handling"},
 ];
 const STAT_BY = {}; STATS.forEach(s => STAT_BY[s.key] = s);
+/* meters shown in the builder (short labels + terrain fill colours) */
+const METERS = [
+  {key:"speed",         label:"Speed",     color:"yellow"},
+  {key:"solidSpeed",    label:"Road Spd",  color:"#ffffff"},
+  {key:"coarseSpeed",   label:"OffRd Spd", color:"#47FF47"},
+  {key:"liquidSpeed",   label:"Water Spd", color:"#35359D"},
+  {key:"accel",         label:"Accel",     color:"yellow"},
+  {key:"handling",      label:"Handling",  color:"yellow"},
+  {key:"solidHandling", label:"Road Hnd",  color:"#ffffff"},
+  {key:"coarseHandling",label:"OffRd Hnd", color:"#47FF47"},
+  {key:"liquidHandling",label:"Water Hnd", color:"#35359D"},
+  {key:"weight",        label:"Weight",    color:"yellow"},
+];
+const MAXBAR = 20;
 
-/* ---------- build all combos ---------- */
+/* ---------- combos ---------- */
 function label(list, i){ return list[i].members.join(" / "); }
 const COMBOS = [];
-for (let ci=0; ci<CHARS.length; ci++){
-  for (let ki=0; ki<KARTS.length; ki++){
-    const c = CHARS[ci], k = KARTS[ki];
-    const o = { ci, ki, charName: label(CHARS,ci), kartName: label(KARTS,ki) };
-    RAW.forEach(r => o[r] = c[r] + k[r]);
-    COMBOS.push(o);
-  }
+for (let ci=0; ci<CHARS.length; ci++) for (let ki=0; ki<KARTS.length; ki++){
+  const c=CHARS[ci], k=KARTS[ki];
+  const o={ ci, ki, charName:label(CHARS,ci), kartName:label(KARTS,ki) };
+  RAW.forEach(r=> o[r]=c[r]+k[r]);
+  COMBOS.push(o);
 }
-function val(o, key){
-  const s = STAT_BY[key];
-  if (s && s.parts){ return Math.round(((o[s.parts[0]]+o[s.parts[1]]+o[s.parts[2]])/3)*1000)/1000; }
+function val(o,key){ const s=STAT_BY[key];
+  if (s&&s.parts) return Math.round(((o[s.parts[0]]+o[s.parts[1]]+o[s.parts[2]])/3)*1000)/1000;
   return o[key];
 }
-function fmt(x){ return Number.isInteger(x) ? x : x.toFixed(2); }
+function fmt(x){ return Number.isInteger(x)? x : x.toFixed(2); }
+function weightClass(wv){ return wv<6?"rowLight": wv<=10?"rowMedium":"rowHeavy"; }
 
-/* ---------- helpers ---------- */
-function opt(text, value){ const o=document.createElement("option"); o.textContent=text; o.value=value; return o; }
-function fillEntitySelect(sel, list){ list.forEach((e,i)=> sel.appendChild(opt(label(list,i), i))); }
-function fillStatSelect(sel, def){ STATS.forEach(s=> sel.appendChild(opt(s.label, s.key))); sel.value=def; }
+/* ---------- entity <select> filling (respects group/individual toggle) ---------- */
+const indiv = document.getElementById("indivToggle");
+function fillEntity(sel, list){
+  const cur = sel.value;
+  sel.innerHTML="";
+  if (indiv.checked){
+    list.forEach((e,i)=> e.members.forEach(m=>{
+      const o=document.createElement("option"); o.textContent=m; o.value=i; sel.appendChild(o);
+    }));
+  } else {
+    list.forEach((e,i)=>{ const o=document.createElement("option"); o.textContent=label(list,i); o.value=i; sel.appendChild(o); });
+  }
+  // restore a valid selection by group index
+  const want = cur!==""? cur : sel.options[0].value;
+  for (const opt of sel.options){ if(opt.value===want){ opt.selected=true; break; } }
+  if (sel.selectedIndex<0) sel.selectedIndex=0;
+}
+function fillStat(sel, def){ STATS.forEach(s=>{ const o=document.createElement("option"); o.textContent=s.label; o.value=s.key; sel.appendChild(o); }); sel.value=def; }
 
 /* ============ 1 · BUILDER ============ */
-const bChar=document.getElementById("b-char"), bKart=document.getElementById("b-kart");
-fillEntitySelect(bChar, CHARS); fillEntitySelect(bKart, KARTS);
-bChar.value=10; bKart.value=17; // Mario / Standard Kart
-const MAXBAR = 20;
-function renderBuilder(){
-  const c=CHARS[+bChar.value], k=KARTS[+bKart.value];
-  const o={}; RAW.forEach(r=> o[r]=c[r]+k[r]);
-  let html="";
-  STATS.forEach(s=>{
-    const v=val(o,s.key);
-    const w=Math.max(0, Math.min(120, (v/MAXBAR)*120));
-    html+=`<div class="statline"><span>${s.label}</span>`+
-          `<span class="barbg"><span class="bar" style="width:${w}px"></span></span>`+
-          `<b>${fmt(v)}</b></div>`;
-  });
-  document.getElementById("b-stats").innerHTML=html;
-  document.getElementById("b-members").innerHTML=
-    `<b>Characters in this group:</b><br>${c.members.join(", ")}<br><br>`+
-    `<b>Vehicles in this group:</b><br>${k.members.join(", ")}`;
+const bChar=document.getElementById("b-char"), bKart=document.getElementById("b-kart"), bMeters=document.getElementById("b-meters");
+// build meter rows once (canvas per stat)
+bMeters.innerHTML = METERS.map(m=>
+  `<div class="meterRow"><span class="t">${m.label}</span>`+
+  `<canvas class="meter" id="mc-${m.key}" width="114" height="15"></canvas>`+
+  `<span class="v" id="mv-${m.key}"></span></div>`).join("");
+function drawMeter(key, value, color){
+  const cv=document.getElementById("mc-"+key), c=cv.getContext("2d"), w=cv.width, h=cv.height;
+  c.clearRect(0,0,w,h);
+  c.fillStyle=color;
+  c.fillRect(0,0, Math.max(0,Math.min(w, Math.round((w/MAXBAR)*value))), h);
+  c.lineWidth=1; c.strokeStyle="black";
+  for(let s=1;s<4;s++){ const px=Math.floor(w*s/4)+0.5; c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke(); }
+  document.getElementById("mv-"+key).textContent = fmt(value);
 }
-bChar.onchange=bKart.onchange=renderBuilder; renderBuilder();
+function renderBuilder(){
+  const c=CHARS[+bChar.value], k=KARTS[+bKart.value], o={};
+  RAW.forEach(r=> o[r]=c[r]+k[r]);
+  METERS.forEach(m=> drawMeter(m.key, val(o,m.key), m.color));
+  document.getElementById("b-members").innerHTML =
+    `<b>Characters:</b> ${c.members.join(", ")}<br><b>Vehicles:</b> ${k.members.join(", ")}`;
+}
+bChar.onchange=bKart.onchange=renderBuilder;
 
 /* ============ 2 · PARETO ============ */
 const pX=document.getElementById("p-x"), pY=document.getElementById("p-y"), pOnly=document.getElementById("p-onlyfront");
-fillStatSelect(pX,"speed"); fillStatSelect(pY,"accel");
-function paretoFront(xk, yk){
-  // higher is better on both axes
-  const pts = COMBOS.map(o=>({o, x:val(o,xk), y:val(o,yk)}));
-  const front = pts.filter(p => !pts.some(q =>
-      (q.x>p.x && q.y>=p.y) || (q.y>p.y && q.x>=p.x) ));
-  // dedupe frontier by (x,y): keep the set, they're all optimal
-  return {pts, front};
-}
+fillStat(pX,"speed"); fillStat(pY,"accel");
 function renderPareto(){
   const xk=pX.value, yk=pY.value;
-  const {pts, front}=paretoFront(xk,yk);
-  const frontSet=new Set(front.map(p=>p.o));
-  // ---- plot ----
-  const W=380,H=300,pad=42;
+  const pts=COMBOS.map(o=>({o, x:val(o,xk), y:val(o,yk)}));
+  const front=pts.filter(p=> !pts.some(q=> (q.x>p.x&&q.y>=p.y)||(q.y>p.y&&q.x>=p.x) ));
+  const fset=new Set(front.map(p=>p.o));
+  const W=360,H=300,pad=40;
   const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
-  const xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
-  const sx=x=> pad + (xmax===xmin?0.5:(x-xmin)/(xmax-xmin))*(W-2*pad);
-  const sy=y=> H-pad - (ymax===ymin?0.5:(y-ymin)/(ymax-ymin))*(H-2*pad);
-  let svg=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
-  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${W-6}" y2="${H-pad}" stroke="#333"/>`;
-  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="6" stroke="#333"/>`;
-  svg+=`<text x="${(W)/2}" y="${H-6}" font-size="12" text-anchor="middle">${STAT_BY[xk].label} →</text>`;
-  svg+=`<text x="12" y="${H/2}" font-size="12" text-anchor="middle" transform="rotate(-90 12 ${H/2})">${STAT_BY[yk].label} →</text>`;
-  // frontier line (sorted by x asc then y desc)
-  const fsorted=[...front].sort((a,b)=> a.x-b.x || b.y-a.y);
-  svg+=`<polyline fill="none" stroke="#e0a400" stroke-width="2" points="${fsorted.map(p=>sx(p.x)+","+sy(p.y)).join(" ")}"/>`;
-  pts.forEach(p=>{ if(!frontSet.has(p.o)) svg+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2.2" fill="#bbb"/>`; });
-  fsorted.forEach(p=> svg+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="3.4" fill="#c0392b"/>`);
-  svg+=`<text x="${pad}" y="${H-pad+14}" font-size="10">${fmt(xmin)}</text>`;
-  svg+=`<text x="${W-6}" y="${H-pad+14}" font-size="10" text-anchor="end">${fmt(xmax)}</text>`;
-  svg+=`<text x="${pad-6}" y="${H-pad}" font-size="10" text-anchor="end">${fmt(ymin)}</text>`;
-  svg+=`<text x="${pad-6}" y="10" font-size="10" text-anchor="end">${fmt(ymax)}</text>`;
-  svg+=`</svg>`;
-  document.getElementById("p-plot").innerHTML=svg;
-  // ---- table ----
-  const rows = pOnly.checked ? pts.filter(p=>frontSet.has(p.o)) : pts.slice();
-  rows.sort((a,b)=> b.x-a.x || b.y-a.y);
-  let html=`<thead><tr><th class="name">Character</th><th class="name">Vehicle</th>`+
-           `<th>${STAT_BY[xk].label}</th><th>${STAT_BY[yk].label}</th></tr></thead><tbody>`;
-  rows.forEach(p=>{
-    const cls = frontSet.has(p.o) ? ' class="frontier"' : '';
-    html+=`<tr${cls}><td class="name">${p.o.charName}</td><td class="name">${p.o.kartName}</td>`+
-          `<td>${fmt(p.x)}</td><td>${fmt(p.y)}</td></tr>`;
-  });
-  html+=`</tbody>`;
-  document.getElementById("p-table").innerHTML=html;
+  const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys);
+  const sx=x=> pad+(xmax===xmin?0.5:(x-xmin)/(xmax-xmin))*(W-2*pad);
+  const sy=y=> H-pad-(ymax===ymin?0.5:(y-ymin)/(ymax-ymin))*(H-2*pad);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block">`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/>`;
+  s+=`<line x1="${pad}" y1="${H-pad}" x2="${W-6}" y2="${H-pad}" stroke="#000"/>`;
+  s+=`<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="6" stroke="#000"/>`;
+  s+=`<text x="${W/2}" y="${H-4}" font-size="11" text-anchor="middle" font-family="Verdana">${STAT_BY[xk].label} →</text>`;
+  s+=`<text x="10" y="${H/2}" font-size="11" text-anchor="middle" font-family="Verdana" transform="rotate(-90 10 ${H/2})">${STAT_BY[yk].label} →</text>`;
+  const fs=[...front].sort((a,b)=> a.x-b.x || b.y-a.y);
+  s+=`<polyline fill="none" stroke="#e0a400" stroke-width="2" points="${fs.map(p=>sx(p.x)+","+sy(p.y)).join(" ")}"/>`;
+  pts.forEach(p=>{ if(!fset.has(p.o)) s+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2" fill="#999"/>`; });
+  fs.forEach(p=> s+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="3.2" fill="#c0392b"/>`);
+  s+=`<text x="${pad}" y="${H-pad+13}" font-size="10" font-family="Verdana">${fmt(xmin)}</text>`;
+  s+=`<text x="${W-6}" y="${H-pad+13}" font-size="10" text-anchor="end" font-family="Verdana">${fmt(xmax)}</text>`;
+  s+=`<text x="${pad-4}" y="${H-pad}" font-size="10" text-anchor="end" font-family="Verdana">${fmt(ymin)}</text>`;
+  s+=`<text x="${pad-4}" y="12" font-size="10" text-anchor="end" font-family="Verdana">${fmt(ymax)}</text>`;
+  s+=`</svg>`;
+  document.getElementById("p-plot").innerHTML=s;
+  const rows=(pOnly.checked? pts.filter(p=>fset.has(p.o)) : pts.slice()).sort((a,b)=> b.x-a.x || b.y-a.y);
+  let h=`<thead><tr><th class="n">Character</th><th class="n">Vehicle</th><th>${STAT_BY[xk].label}</th><th>${STAT_BY[yk].label}</th></tr></thead><tbody>`;
+  rows.forEach(p=>{ const cls=fset.has(p.o)?weightClass(p.o.weight):"";
+    h+=`<tr class="${cls}"><td class="n">${p.o.charName}</td><td class="n">${p.o.kartName}</td><td>${fmt(p.x)}</td><td>${fmt(p.y)}</td></tr>`; });
+  document.getElementById("p-table").innerHTML=h+"</tbody>";
 }
-pX.onchange=pY.onchange=pOnly.onchange=renderPareto; renderPareto();
+pX.onchange=pY.onchange=pOnly.onchange=renderPareto;
 
-/* ============ 3 · FINDER ============ */
+/* ============ 3 · FINDER (radio conditions like the classic tool) ============ */
 const fChar=document.getElementById("f-char"), fKart=document.getElementById("f-kart");
-fillEntitySelect(fChar,CHARS); fillEntitySelect(fKart,KARTS);
-fChar.value=10; fKart.value=17;
-// criteria row per stat
-(function buildCriteria(){
-  let head="<thead><tr><th class='name'>Stat</th><th>Your value</th><th>Requirement</th></tr></thead><tbody>";
-  let body="";
-  STATS.forEach(s=>{
-    body+=`<tr><td class="name">${s.label}</td><td id="fv-${s.key}">–</td>`+
-      `<td><select id="fc-${s.key}"><option value="">ignore</option>`+
-      `<option value="ge">≥ (not worse)</option><option value="gt">&gt; (strictly better)</option></select></td></tr>`;
-  });
-  document.getElementById("f-criteria").innerHTML=head+body+"</tbody>";
+fillStat; // no-op ref
+(function(){ // fill base build selects with grouped labels
+  CHARS.forEach((e,i)=>{ const o=document.createElement("option"); o.textContent=label(CHARS,i); o.value=i; fChar.appendChild(o); });
+  KARTS.forEach((e,i)=>{ const o=document.createElement("option"); o.textContent=label(KARTS,i); o.value=i; fKart.appendChild(o); });
+  fChar.value=10; fKart.value=17;
 })();
-function baseCombo(){ const o={}; const c=CHARS[+fChar.value],k=KARTS[+fKart.value]; RAW.forEach(r=>o[r]=c[r]+k[r]); return o; }
-function refreshBaseVals(){ const b=baseCombo(); STATS.forEach(s=> document.getElementById("fv-"+s.key).textContent=fmt(val(b,s.key))); }
-fChar.onchange=fKart.onchange=refreshBaseVals; refreshBaseVals();
-
+const OPS=[["lt","&lt;"],["le","&le;"],["eq","="],["ge","&ge;"],["gt","&gt;"],["na","n/a"]];
+// default relations: speed & accel >= , rest n/a
+const DEFAULT_OP={speed:"ge", accel:"ge"};
+(function buildConditions(){
+  let html="";
+  STATS.forEach(s=>{
+    const def=DEFAULT_OP[s.key]||"na";
+    let radios=OPS.map(([v,g])=>
+      `<label><input type="radio" name="c-${s.key}" value="${v}"${v===def?" checked":""}>${g}</label>`).join("");
+    html+=`<div class="condRow"><span class="ct">${s.label} <span class="yourval" id="fv-${s.key}"></span></span><span class="co">${radios}</span></div>`;
+  });
+  document.getElementById("f-conditions").innerHTML=html;
+})();
+function baseCombo(){ const o={}, c=CHARS[+fChar.value], k=KARTS[+fKart.value]; RAW.forEach(r=>o[r]=c[r]+k[r]); return o; }
+function refreshBase(){ const b=baseCombo(); STATS.forEach(s=> document.getElementById("fv-"+s.key).textContent="("+fmt(val(b,s.key))+")"); }
+fChar.onchange=fKart.onchange=refreshBase;
+function passOp(op,d,eps){ switch(op){
+  case "lt": return d<-eps; case "le": return d<=eps; case "eq": return Math.abs(d)<=eps;
+  case "ge": return d>=-eps; case "gt": return d>eps; default: return true; } }
 function runFinder(){
-  const b=baseCombo();
+  const b=baseCombo(), bi=+fChar.value, bk=+fKart.value, eps=1e-9;
   const strict=document.getElementById("f-strict").checked;
-  const reqs=STATS.map(s=>({key:s.key, mode:document.getElementById("fc-"+s.key).value})).filter(r=>r.mode);
-  const bi=+fChar.value, bk=+fKart.value;
-  const eps=1e-9;
+  const reqs=STATS.map(s=>({key:s.key, op:(document.querySelector(`input[name="c-${s.key}"]:checked`)||{}).value||"na"})).filter(r=>r.op!=="na");
   const out=COMBOS.filter(o=>{
-    if(o.ci===bi && o.ki===bk) return false;
-    // explicit requirements
-    for(const r of reqs){
-      const d=val(o,r.key)-val(b,r.key);
-      if(r.mode==="gt" && !(d>eps)) return false;
-      if(r.mode==="ge" && d<-eps) return false;
-    }
-    // true-upgrade: not worse in any raw stat, and better in at least one
-    if(strict){
-      let better=false;
-      for(const rk of RAW){ const d=o[rk]-b[rk]; if(d<-eps) return false; if(d>eps) better=true; }
-      if(!better) return false;
-    }
+    if(o.ci===bi&&o.ki===bk) return false;
+    for(const r of reqs){ if(!passOp(r.op, val(o,r.key)-val(b,r.key), eps)) return false; }
+    if(strict){ let better=false; for(const rk of RAW){ const d=o[rk]-b[rk]; if(d<-eps) return false; if(d>eps) better=true; } if(!better) return false; }
     return true;
   });
-  // score: sum of improvements over required stats (or all if none required)
-  const keys = reqs.length? reqs.map(r=>r.key) : STATS.map(s=>s.key);
-  out.forEach(o=> o._score = keys.reduce((a,key)=> a+(val(o,key)-val(b,key)),0));
+  const keys=reqs.length? reqs.map(r=>r.key) : STATS.map(s=>s.key);
+  out.forEach(o=> o._score=keys.reduce((a,key)=> a+(val(o,key)-val(b,key)),0));
   out.sort((a,b)=> b._score-a._score);
-  document.getElementById("f-count").textContent = `${out.length} build(s) match.`;
-  // table
-  let html="<thead><tr><th class='name'>Character</th><th class='name'>Vehicle</th>";
-  STATS.forEach(s=> html+=`<th>${s.label}</th>`);
-  html+="</tr></thead><tbody>";
+  let cnt=`${out.length} build(s) match`;
+  let h="<thead><tr><th class='n'>Character</th><th class='n'>Vehicle</th>";
+  STATS.forEach(s=> h+=`<th>${s.label.replace(' (avg)','')}</th>`);
+  h+="</tr></thead><tbody>";
   out.slice(0,300).forEach(o=>{
-    html+=`<tr><td class="name">${o.charName}</td><td class="name">${o.kartName}</td>`;
-    STATS.forEach(s=>{
-      const d=val(o,s.key)-val(b,s.key);
-      const cls = d>eps?'up': d<-eps?'down':'';
-      const sign = d>eps?'+':'';
-      html+=`<td class="${cls}">${fmt(val(o,s.key))}${d? ' ('+sign+fmt(d)+')':''}</td>`;
-    });
-    html+="</tr>";
+    h+=`<tr class="${weightClass(o.weight)}"><td class="n">${o.charName}</td><td class="n">${o.kartName}</td>`;
+    STATS.forEach(s=>{ const d=val(o,s.key)-val(b,s.key), cls=d>eps?'up':d<-eps?'down':'', sg=d>eps?'+':'';
+      h+=`<td class="${cls}">${fmt(val(o,s.key))}${d?` (${sg}${fmt(d)})`:''}</td>`; });
+    h+="</tr>";
   });
-  html+="</tbody>";
-  document.getElementById("f-results").innerHTML=html;
-  if(out.length>300) document.getElementById("f-count").textContent+=" (showing top 300)";
+  document.getElementById("f-results").innerHTML=h+"</tbody>";
+  if(out.length>300) cnt+=" (top 300 shown)";
+  document.getElementById("f-count").textContent=cnt;
 }
 document.getElementById("f-go").onclick=runFinder;
 
 /* ============ 4 · REFERENCE ============ */
-function refTable(list){
-  let html="<thead><tr><th class='name'>Group members</th>";
-  STATS.forEach(s=> html+=`<th>${s.label}</th>`); html+="</tr></thead><tbody>";
-  list.forEach(e=>{
-    html+=`<tr><td class="name">${e.members.join(", ")}</td>`;
-    STATS.forEach(s=> html+=`<td>${fmt(val(e,s.key))}</td>`);
-    html+="</tr>";
-  });
-  return html+"</tbody>";
+function refBlocks(list){
+  return list.map((e,i)=> `<div class="grpBlock ${weightClass(e.weight)}"><b>${e.members.join(", ")}</b> `+
+    STATS.filter(s=>!s.parts).map(s=>`${s.label.slice(0,4)}:${e[s.key]}`).join(" ")+"</div>").join("");
 }
-document.getElementById("ref-char").innerHTML=refTable(CHARS);
-document.getElementById("ref-kart").innerHTML=refTable(KARTS);
+document.getElementById("ref-char").innerHTML=refBlocks(CHARS);
+document.getElementById("ref-kart").innerHTML=refBlocks(KARTS);
+
+/* ---------- init + toggle ---------- */
+function initSelects(){ fillEntity(bChar,CHARS); fillEntity(bKart,KARTS); if(bChar.selectedIndex<0)bChar.selectedIndex=0; if(bKart.selectedIndex<0)bKart.selectedIndex=0; }
+indiv.onchange=()=>{ initSelects(); renderBuilder(); };
+initSelects();
+bChar.value=10; bKart.value=17;
+renderBuilder(); renderPareto(); refreshBase(); runFinder();
 </script>
