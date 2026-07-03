@@ -1,0 +1,311 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mario Kart World Stats Calculator</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 12px; color: #111; background: #fff; line-height: 1.35; }
+  h1 { font-size: 20px; margin: 4px 0 2px; }
+  h2 { font-size: 16px; margin: 18px 0 6px; border-bottom: 2px solid #333; padding-bottom: 2px; }
+  .sub { color: #555; font-size: 12px; margin: 0 0 8px; }
+  section { max-width: 1000px; margin: 0 auto 6px; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  select, button { font-size: 14px; padding: 3px 4px; }
+  button { cursor: pointer; }
+  label { font-size: 13px; }
+  table { border-collapse: collapse; font-size: 12px; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 2px 5px; text-align: center; }
+  th { background: #eee; position: sticky; top: 0; }
+  td.name, th.name { text-align: left; white-space: nowrap; }
+  .bar { display: inline-block; height: 11px; background: #2a7; vertical-align: middle; }
+  .barbg { display: inline-block; width: 120px; height: 11px; background: #e3e3e3; vertical-align: middle; border: 1px solid #ccc; }
+  .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  .col { flex: 1 1 300px; min-width: 280px; }
+  .statline { display: grid; grid-template-columns: 130px 130px 40px; align-items: center; gap: 6px; margin: 2px 0; font-size: 13px; }
+  .up { color: #0a0; font-weight: bold; }
+  .down { color: #c00; }
+  .scrollx { overflow-x: auto; }
+  .tblbox { max-height: 340px; overflow: auto; border: 1px solid #ccc; }
+  .note { font-size: 12px; color: #555; }
+  .frontier td { background: #fff3cc; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 8px; }
+  fieldset { border: 1px solid #ccc; padding: 6px 8px; margin: 6px 0; }
+  legend { font-size: 12px; color: #444; }
+  code { background: #f0f0f0; padding: 1px 3px; }
+  svg { max-width: 100%; height: auto; }
+  details > summary { cursor: pointer; font-weight: bold; font-size: 14px; margin: 6px 0; }
+</style>
+
+<div class="wrap">
+  <h1>Mario Kart World — Stats Calculator</h1>
+  <p class="sub">Pick a character &amp; vehicle to see combined stats, explore the Pareto frontier of any two stats, and search for builds that beat yours. Pure HTML/JS, no dependencies. Data: community stat rips (see bottom).</p>
+</div>
+
+<!-- ============ BUILDER ============ -->
+<section>
+  <h2>1 · Builder</h2>
+  <div class="controls">
+    <label>Character:
+      <select id="b-char"></select>
+    </label>
+    <label>Vehicle:
+      <select id="b-kart"></select>
+    </label>
+  </div>
+  <div class="row">
+    <div class="col" id="b-stats"></div>
+    <div class="col">
+      <div class="note" id="b-members"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PARETO ============ -->
+<section>
+  <h2>2 · Pareto Frontier (two stats)</h2>
+  <p class="sub">The frontier = builds where you can't improve one axis without giving up the other. E.g. set X = Speed, Y = Acceleration to read off the best mini-turbo available at each speed. Both axes treated as "higher is better".</p>
+  <div class="controls">
+    <label>X axis: <select id="p-x"></select></label>
+    <label>Y axis: <select id="p-y"></select></label>
+    <label><input type="checkbox" id="p-onlyfront" checked> table shows frontier only</label>
+  </div>
+  <div class="row">
+    <div class="col" style="flex:0 0 auto"><div id="p-plot"></div></div>
+    <div class="col">
+      <div class="tblbox"><table id="p-table"></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINDER ============ -->
+<section>
+  <h2>3 · Combo Finder — beat your build</h2>
+  <p class="sub">Choose a base build, then say which stats must improve (&gt;) or at least stay equal (≥). Optionally require a true upgrade (never worse in anything).</p>
+  <div class="controls">
+    <label>Base character: <select id="f-char"></select></label>
+    <label>Base vehicle: <select id="f-kart"></select></label>
+    <label><input type="checkbox" id="f-strict"> only true upgrades (not worse in ANY stat)</label>
+    <button id="f-go">Find builds</button>
+  </div>
+  <div class="scrollx"><table id="f-criteria"></table></div>
+  <p class="note" id="f-count"></p>
+  <div class="tblbox"><table id="f-results"></table></div>
+</section>
+
+<!-- ============ REFERENCE ============ -->
+<section>
+  <h2>4 · Reference tables</h2>
+  <details>
+    <summary>Character stat groups (click to expand)</summary>
+    <div class="scrollx"><table id="ref-char"></table></div>
+  </details>
+  <details>
+    <summary>Vehicle stat groups (click to expand)</summary>
+    <div class="scrollx"><table id="ref-kart"></table></div>
+  </details>
+  <p class="note">
+    Characters and vehicles that share a stat line are listed together on one row.
+    Speed &amp; Handling each split into three terrain types: <b>Road</b> (solid), <b>Off-Road</b> (coarse/rough), <b>Water</b> (liquid).
+    A build's stat = character value + vehicle value.
+    <b>Accel</b> also governs mini-turbo; <b>Weight</b> also affects coin capacity.
+  </p>
+</section>
+
+<script>
+/* ---------- DATA (community stat rips; character = base, vehicle = modifier, summed) ---------- */
+const CHARS = [{"members":["Baby Peach","Baby Daisy","Swooper","Para-Biddybud"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":0,"accel":7,"weight":0,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Baby Mario","Goomba","Spike"],"solidSpeed":1,"coarseSpeed":0,"liquidSpeed":0,"accel":6,"weight":1,"solidHandling":7,"coarseHandling":5,"liquidHandling":5},{"members":["Baby Luigi","Dry Bones","Peepa"],"solidSpeed":0,"coarseSpeed":1,"liquidSpeed":0,"accel":6,"weight":1,"solidHandling":5,"coarseHandling":7,"liquidHandling":5},{"members":["Baby Rosalina","Sidestepper","Fishbone"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":1,"accel":6,"weight":1,"solidHandling":5,"coarseHandling":5,"liquidHandling":7},{"members":["Toadette","Nabbit"],"solidSpeed":2,"coarseSpeed":1,"liquidSpeed":1,"accel":5,"weight":2,"solidHandling":6,"coarseHandling":4,"liquidHandling":4},{"members":["Toad","Shy Guy","Stingby"],"solidSpeed":1,"coarseSpeed":2,"liquidSpeed":1,"accel":5,"weight":2,"solidHandling":4,"coarseHandling":6,"liquidHandling":4},{"members":["Koopa Troopa","Lakitu","Cheep Cheep"],"solidSpeed":1,"coarseSpeed":1,"liquidSpeed":2,"accel":5,"weight":2,"solidHandling":4,"coarseHandling":4,"liquidHandling":6},{"members":["Peach","Daisy","Coin Coffer"],"solidSpeed":3,"coarseSpeed":2,"liquidSpeed":2,"accel":4,"weight":3,"solidHandling":5,"coarseHandling":3,"liquidHandling":3},{"members":["Yoshi","Monty Mole"],"solidSpeed":2,"coarseSpeed":3,"liquidSpeed":2,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":5,"liquidHandling":3},{"members":["Bowser Jr.","Dolphin"],"solidSpeed":2,"coarseSpeed":2,"liquidSpeed":3,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":5},{"members":["Mario","Rocky Wrench"],"solidSpeed":4,"coarseSpeed":3,"liquidSpeed":3,"accel":3,"weight":4,"solidHandling":4,"coarseHandling":2,"liquidHandling":2},{"members":["Luigi","Hammer Bro","Pokey"],"solidSpeed":3,"coarseSpeed":4,"liquidSpeed":3,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":4,"liquidHandling":2},{"members":["Birdo","Penguin"],"solidSpeed":3,"coarseSpeed":3,"liquidSpeed":4,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":2,"liquidHandling":4},{"members":["Pauline","Snowman","Piranha Plant"],"solidSpeed":5,"coarseSpeed":4,"liquidSpeed":4,"accel":2,"weight":5,"solidHandling":3,"coarseHandling":1,"liquidHandling":1},{"members":["King Boo","Conkdor"],"solidSpeed":4,"coarseSpeed":5,"liquidSpeed":4,"accel":2,"weight":5,"solidHandling":1,"coarseHandling":3,"liquidHandling":1},{"members":["Rosalina","Cataquack"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":5,"accel":2,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":3},{"members":["Wario","Wiggler"],"solidSpeed":6,"coarseSpeed":5,"liquidSpeed":5,"accel":1,"weight":6,"solidHandling":2,"coarseHandling":0,"liquidHandling":0},{"members":["Cow","Donkey Kong","Chargin' Chuck"],"solidSpeed":5,"coarseSpeed":6,"liquidSpeed":5,"accel":1,"weight":6,"solidHandling":0,"coarseHandling":2,"liquidHandling":0},{"members":["Waluigi","Pianta"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":6,"accel":1,"weight":6,"solidHandling":0,"coarseHandling":0,"liquidHandling":2},{"members":["Bowser"],"solidSpeed":6,"coarseSpeed":6,"liquidSpeed":6,"accel":0,"weight":7,"solidHandling":0,"coarseHandling":0,"liquidHandling":0}];
+const KARTS = [{"members":["Mach Rocket","R.O.B. H.O.G."],"solidSpeed":6,"coarseSpeed":1,"liquidSpeed":1,"accel":7,"weight":0,"solidHandling":10,"coarseHandling":6,"liquidHandling":6},{"members":["Rally Bike","Hyper Pipe"],"solidSpeed":0,"coarseSpeed":5,"liquidSpeed":0,"accel":8,"weight":0,"solidHandling":0,"coarseHandling":10,"liquidHandling":6},{"members":["Fin Twin","Dolphin Dasher"],"solidSpeed":0,"coarseSpeed":0,"liquidSpeed":5,"accel":8,"weight":0,"solidHandling":6,"coarseHandling":6,"liquidHandling":10},{"members":["Baby Blooper"],"solidSpeed":7,"coarseSpeed":2,"liquidSpeed":2,"accel":6,"weight":1,"solidHandling":9,"coarseHandling":5,"liquidHandling":5},{"members":["Biddybuggy (Buggybud)"],"solidSpeed":1,"coarseSpeed":6,"liquidSpeed":1,"accel":7,"weight":0,"solidHandling":5,"coarseHandling":9,"liquidHandling":5},{"members":["Roadster Royale","B-Dasher","Hot Rod","Bumble V"],"solidSpeed":8,"coarseSpeed":4,"liquidSpeed":4,"accel":4,"weight":3,"solidHandling":8,"coarseHandling":3,"liquidHandling":3},{"members":["Zoom Buggy","Rally Kart"],"solidSpeed":4,"coarseSpeed":8,"liquidSpeed":4,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":8,"liquidHandling":3},{"members":["Cloud 9","Ribbit Revster","Carpet Flyer"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":8,"accel":4,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":8},{"members":["Billdozer","Big Horn"],"solidSpeed":9,"coarseSpeed":6,"liquidSpeed":6,"accel":2,"weight":5,"solidHandling":7,"coarseHandling":1,"liquidHandling":1},{"members":["Bowser Bruiser","Li'l Dumpy","Tiny Titan (Rally Romper)","Chargin Truck"],"solidSpeed":7,"coarseSpeed":10,"liquidSpeed":7,"accel":1,"weight":5,"solidHandling":1,"coarseHandling":7,"liquidHandling":1},{"members":["Mecha Trike"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":10,"accel":1,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":7},{"members":["Rallygator"],"solidSpeed":9,"coarseSpeed":6,"liquidSpeed":6,"accel":3,"weight":6,"solidHandling":5,"coarseHandling":0,"liquidHandling":0},{"members":["Lobster Roller"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":10,"accel":2,"weight":6,"solidHandling":0,"coarseHandling":0,"liquidHandling":5},{"members":["Standard Bike","Cute Scoot","Tune Thumper"],"solidSpeed":1,"coarseSpeed":1,"liquidSpeed":1,"accel":9,"weight":0,"solidHandling":7,"coarseHandling":7,"liquidHandling":7},{"members":["Pipe Frame"],"solidSpeed":2,"coarseSpeed":2,"liquidSpeed":2,"accel":8,"weight":1,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Loco Moto"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":4,"accel":6,"weight":1,"solidHandling":6,"coarseHandling":6,"liquidHandling":6},{"members":["Blastronaut III"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":5,"accel":6,"weight":3,"solidHandling":3,"coarseHandling":3,"liquidHandling":3},{"members":["Standard Kart","Plushbuggy"],"solidSpeed":5,"coarseSpeed":5,"liquidSpeed":5,"accel":5,"weight":2,"solidHandling":5,"coarseHandling":5,"liquidHandling":5},{"members":["W-Twin Chopper"],"solidSpeed":7,"coarseSpeed":7,"liquidSpeed":7,"accel":3,"weight":2,"solidHandling":5,"coarseHandling":5,"liquidHandling":5},{"members":["Reel Racer"],"solidSpeed":8,"coarseSpeed":8,"liquidSpeed":8,"accel":2,"weight":3,"solidHandling":4,"coarseHandling":4,"liquidHandling":4},{"members":["Junkyard Hog"],"solidSpeed":8,"coarseSpeed":8,"liquidSpeed":8,"accel":3,"weight":4,"solidHandling":2,"coarseHandling":2,"liquidHandling":2},{"members":["Funky Dorrie"],"solidSpeed":4,"coarseSpeed":4,"liquidSpeed":8,"accel":5,"weight":5,"solidHandling":1,"coarseHandling":1,"liquidHandling":6},{"members":["Dread Sled"],"solidSpeed":3,"coarseSpeed":9,"liquidSpeed":5,"accel":3,"weight":3,"solidHandling":3,"coarseHandling":9,"liquidHandling":4},{"members":["Stellar Sled"],"solidSpeed":6,"coarseSpeed":8,"liquidSpeed":11,"accel":0,"weight":5,"solidHandling":1,"coarseHandling":2,"liquidHandling":8}];
+
+const RAW = ["solidSpeed","coarseSpeed","liquidSpeed","accel","weight","solidHandling","coarseHandling","liquidHandling"];
+/* stats exposed in UI (aggregates computed on demand) */
+const STATS = [
+  {key:"speed",         label:"Speed (avg)",        parts:["solidSpeed","coarseSpeed","liquidSpeed"]},
+  {key:"solidSpeed",    label:"Road Speed"},
+  {key:"coarseSpeed",   label:"Off-Road Speed"},
+  {key:"liquidSpeed",   label:"Water Speed"},
+  {key:"accel",         label:"Acceleration / Mini-Turbo"},
+  {key:"weight",        label:"Weight / Coins"},
+  {key:"handling",      label:"Handling (avg)",     parts:["solidHandling","coarseHandling","liquidHandling"]},
+  {key:"solidHandling", label:"Road Handling"},
+  {key:"coarseHandling",label:"Off-Road Handling"},
+  {key:"liquidHandling",label:"Water Handling"},
+];
+const STAT_BY = {}; STATS.forEach(s => STAT_BY[s.key] = s);
+
+/* ---------- build all combos ---------- */
+function label(list, i){ return list[i].members.join(" / "); }
+const COMBOS = [];
+for (let ci=0; ci<CHARS.length; ci++){
+  for (let ki=0; ki<KARTS.length; ki++){
+    const c = CHARS[ci], k = KARTS[ki];
+    const o = { ci, ki, charName: label(CHARS,ci), kartName: label(KARTS,ki) };
+    RAW.forEach(r => o[r] = c[r] + k[r]);
+    COMBOS.push(o);
+  }
+}
+function val(o, key){
+  const s = STAT_BY[key];
+  if (s && s.parts){ return Math.round(((o[s.parts[0]]+o[s.parts[1]]+o[s.parts[2]])/3)*1000)/1000; }
+  return o[key];
+}
+function fmt(x){ return Number.isInteger(x) ? x : x.toFixed(2); }
+
+/* ---------- helpers ---------- */
+function opt(text, value){ const o=document.createElement("option"); o.textContent=text; o.value=value; return o; }
+function fillEntitySelect(sel, list){ list.forEach((e,i)=> sel.appendChild(opt(label(list,i), i))); }
+function fillStatSelect(sel, def){ STATS.forEach(s=> sel.appendChild(opt(s.label, s.key))); sel.value=def; }
+
+/* ============ 1 · BUILDER ============ */
+const bChar=document.getElementById("b-char"), bKart=document.getElementById("b-kart");
+fillEntitySelect(bChar, CHARS); fillEntitySelect(bKart, KARTS);
+bChar.value=10; bKart.value=17; // Mario / Standard Kart
+const MAXBAR = 20;
+function renderBuilder(){
+  const c=CHARS[+bChar.value], k=KARTS[+bKart.value];
+  const o={}; RAW.forEach(r=> o[r]=c[r]+k[r]);
+  let html="";
+  STATS.forEach(s=>{
+    const v=val(o,s.key);
+    const w=Math.max(0, Math.min(120, (v/MAXBAR)*120));
+    html+=`<div class="statline"><span>${s.label}</span>`+
+          `<span class="barbg"><span class="bar" style="width:${w}px"></span></span>`+
+          `<b>${fmt(v)}</b></div>`;
+  });
+  document.getElementById("b-stats").innerHTML=html;
+  document.getElementById("b-members").innerHTML=
+    `<b>Characters in this group:</b><br>${c.members.join(", ")}<br><br>`+
+    `<b>Vehicles in this group:</b><br>${k.members.join(", ")}`;
+}
+bChar.onchange=bKart.onchange=renderBuilder; renderBuilder();
+
+/* ============ 2 · PARETO ============ */
+const pX=document.getElementById("p-x"), pY=document.getElementById("p-y"), pOnly=document.getElementById("p-onlyfront");
+fillStatSelect(pX,"speed"); fillStatSelect(pY,"accel");
+function paretoFront(xk, yk){
+  // higher is better on both axes
+  const pts = COMBOS.map(o=>({o, x:val(o,xk), y:val(o,yk)}));
+  const front = pts.filter(p => !pts.some(q =>
+      (q.x>p.x && q.y>=p.y) || (q.y>p.y && q.x>=p.x) ));
+  // dedupe frontier by (x,y): keep the set, they're all optimal
+  return {pts, front};
+}
+function renderPareto(){
+  const xk=pX.value, yk=pY.value;
+  const {pts, front}=paretoFront(xk,yk);
+  const frontSet=new Set(front.map(p=>p.o));
+  // ---- plot ----
+  const W=380,H=300,pad=42;
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const xmin=Math.min(...xs), xmax=Math.max(...xs), ymin=Math.min(...ys), ymax=Math.max(...ys);
+  const sx=x=> pad + (xmax===xmin?0.5:(x-xmin)/(xmax-xmin))*(W-2*pad);
+  const sy=y=> H-pad - (ymax===ymin?0.5:(y-ymin)/(ymax-ymin))*(H-2*pad);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${W-6}" y2="${H-pad}" stroke="#333"/>`;
+  svg+=`<line x1="${pad}" y1="${H-pad}" x2="${pad}" y2="6" stroke="#333"/>`;
+  svg+=`<text x="${(W)/2}" y="${H-6}" font-size="12" text-anchor="middle">${STAT_BY[xk].label} →</text>`;
+  svg+=`<text x="12" y="${H/2}" font-size="12" text-anchor="middle" transform="rotate(-90 12 ${H/2})">${STAT_BY[yk].label} →</text>`;
+  // frontier line (sorted by x asc then y desc)
+  const fsorted=[...front].sort((a,b)=> a.x-b.x || b.y-a.y);
+  svg+=`<polyline fill="none" stroke="#e0a400" stroke-width="2" points="${fsorted.map(p=>sx(p.x)+","+sy(p.y)).join(" ")}"/>`;
+  pts.forEach(p=>{ if(!frontSet.has(p.o)) svg+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="2.2" fill="#bbb"/>`; });
+  fsorted.forEach(p=> svg+=`<circle cx="${sx(p.x)}" cy="${sy(p.y)}" r="3.4" fill="#c0392b"/>`);
+  svg+=`<text x="${pad}" y="${H-pad+14}" font-size="10">${fmt(xmin)}</text>`;
+  svg+=`<text x="${W-6}" y="${H-pad+14}" font-size="10" text-anchor="end">${fmt(xmax)}</text>`;
+  svg+=`<text x="${pad-6}" y="${H-pad}" font-size="10" text-anchor="end">${fmt(ymin)}</text>`;
+  svg+=`<text x="${pad-6}" y="10" font-size="10" text-anchor="end">${fmt(ymax)}</text>`;
+  svg+=`</svg>`;
+  document.getElementById("p-plot").innerHTML=svg;
+  // ---- table ----
+  const rows = pOnly.checked ? pts.filter(p=>frontSet.has(p.o)) : pts.slice();
+  rows.sort((a,b)=> b.x-a.x || b.y-a.y);
+  let html=`<thead><tr><th class="name">Character</th><th class="name">Vehicle</th>`+
+           `<th>${STAT_BY[xk].label}</th><th>${STAT_BY[yk].label}</th></tr></thead><tbody>`;
+  rows.forEach(p=>{
+    const cls = frontSet.has(p.o) ? ' class="frontier"' : '';
+    html+=`<tr${cls}><td class="name">${p.o.charName}</td><td class="name">${p.o.kartName}</td>`+
+          `<td>${fmt(p.x)}</td><td>${fmt(p.y)}</td></tr>`;
+  });
+  html+=`</tbody>`;
+  document.getElementById("p-table").innerHTML=html;
+}
+pX.onchange=pY.onchange=pOnly.onchange=renderPareto; renderPareto();
+
+/* ============ 3 · FINDER ============ */
+const fChar=document.getElementById("f-char"), fKart=document.getElementById("f-kart");
+fillEntitySelect(fChar,CHARS); fillEntitySelect(fKart,KARTS);
+fChar.value=10; fKart.value=17;
+// criteria row per stat
+(function buildCriteria(){
+  let head="<thead><tr><th class='name'>Stat</th><th>Your value</th><th>Requirement</th></tr></thead><tbody>";
+  let body="";
+  STATS.forEach(s=>{
+    body+=`<tr><td class="name">${s.label}</td><td id="fv-${s.key}">–</td>`+
+      `<td><select id="fc-${s.key}"><option value="">ignore</option>`+
+      `<option value="ge">≥ (not worse)</option><option value="gt">&gt; (strictly better)</option></select></td></tr>`;
+  });
+  document.getElementById("f-criteria").innerHTML=head+body+"</tbody>";
+})();
+function baseCombo(){ const o={}; const c=CHARS[+fChar.value],k=KARTS[+fKart.value]; RAW.forEach(r=>o[r]=c[r]+k[r]); return o; }
+function refreshBaseVals(){ const b=baseCombo(); STATS.forEach(s=> document.getElementById("fv-"+s.key).textContent=fmt(val(b,s.key))); }
+fChar.onchange=fKart.onchange=refreshBaseVals; refreshBaseVals();
+
+function runFinder(){
+  const b=baseCombo();
+  const strict=document.getElementById("f-strict").checked;
+  const reqs=STATS.map(s=>({key:s.key, mode:document.getElementById("fc-"+s.key).value})).filter(r=>r.mode);
+  const bi=+fChar.value, bk=+fKart.value;
+  const eps=1e-9;
+  const out=COMBOS.filter(o=>{
+    if(o.ci===bi && o.ki===bk) return false;
+    // explicit requirements
+    for(const r of reqs){
+      const d=val(o,r.key)-val(b,r.key);
+      if(r.mode==="gt" && !(d>eps)) return false;
+      if(r.mode==="ge" && d<-eps) return false;
+    }
+    // true-upgrade: not worse in any raw stat, and better in at least one
+    if(strict){
+      let better=false;
+      for(const rk of RAW){ const d=o[rk]-b[rk]; if(d<-eps) return false; if(d>eps) better=true; }
+      if(!better) return false;
+    }
+    return true;
+  });
+  // score: sum of improvements over required stats (or all if none required)
+  const keys = reqs.length? reqs.map(r=>r.key) : STATS.map(s=>s.key);
+  out.forEach(o=> o._score = keys.reduce((a,key)=> a+(val(o,key)-val(b,key)),0));
+  out.sort((a,b)=> b._score-a._score);
+  document.getElementById("f-count").textContent = `${out.length} build(s) match.`;
+  // table
+  let html="<thead><tr><th class='name'>Character</th><th class='name'>Vehicle</th>";
+  STATS.forEach(s=> html+=`<th>${s.label}</th>`);
+  html+="</tr></thead><tbody>";
+  out.slice(0,300).forEach(o=>{
+    html+=`<tr><td class="name">${o.charName}</td><td class="name">${o.kartName}</td>`;
+    STATS.forEach(s=>{
+      const d=val(o,s.key)-val(b,s.key);
+      const cls = d>eps?'up': d<-eps?'down':'';
+      const sign = d>eps?'+':'';
+      html+=`<td class="${cls}">${fmt(val(o,s.key))}${d? ' ('+sign+fmt(d)+')':''}</td>`;
+    });
+    html+="</tr>";
+  });
+  html+="</tbody>";
+  document.getElementById("f-results").innerHTML=html;
+  if(out.length>300) document.getElementById("f-count").textContent+=" (showing top 300)";
+}
+document.getElementById("f-go").onclick=runFinder;
+
+/* ============ 4 · REFERENCE ============ */
+function refTable(list){
+  let html="<thead><tr><th class='name'>Group members</th>";
+  STATS.forEach(s=> html+=`<th>${s.label}</th>`); html+="</tr></thead><tbody>";
+  list.forEach(e=>{
+    html+=`<tr><td class="name">${e.members.join(", ")}</td>`;
+    STATS.forEach(s=> html+=`<td>${fmt(val(e,s.key))}</td>`);
+    html+="</tr>";
+  });
+  return html+"</tbody>";
+}
+document.getElementById("ref-char").innerHTML=refTable(CHARS);
+document.getElementById("ref-kart").innerHTML=refTable(KARTS);
+</script>
