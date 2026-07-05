@@ -51,6 +51,8 @@
   table.results th, table.results td { border: 1px solid black; padding: 1px 5px; text-align: center; white-space: nowrap; }
   table.results td.n, table.results th.n { text-align: left; }
   table.results th { background: #bbb; position: sticky; top: 0; }
+  table.results th.sortable { cursor: pointer; user-select: none; }
+  table.results th.sortable:hover { background: #a8c0a8; }
   table.results td.sep, table.results th.sep { border-left: 3px solid black; }
   .cellUp { background-color: #b7f0b7; color: #063806; }
   .cellDown { background-color: #f5b7b7; color: #520303; }
@@ -93,8 +95,7 @@
     <hr style="margin:8px 0;border:none;border-top:1px solid #888;">
 
     <div style="font-size:11px;margin-bottom:6px;">
-      <label style="font-weight:bold;"><input type="checkbox" id="f-strict"> only true upgrades (never worse in any stat)</label>
-      &nbsp; <span class="note">Results update live as you change the character, vehicle, or conditions below.</span>
+      <span class="note">Results update live as you change the character, vehicle, or conditions below. Click a column header to sort; click more headers to add tie-breakers.</span>
     </div>
     <div style="display:inline-block;vertical-align:top;width:340px;margin-right:10px;">
       <div id="f-conditions" style="border:1px solid black;background:#eee;"></div>
@@ -275,27 +276,51 @@ function passOp(op,d,eps){ switch(op){
   case "lt": return d<-eps; case "le": return d<=eps; case "eq": return Math.abs(d)<=eps;
   case "ge": return d>=-eps; case "gt": return d>eps; default: return true; } }
 
+/* sortable finder headers: a priority stack of {key,dir} remembered across re-runs */
+let finderSort = [];   // index 0 = highest priority; dir 1 asc, -1 desc
+function sortInd(key){
+  const i=finderSort.findIndex(s=>s.key===key);
+  if(i<0) return "";
+  const arrow = finderSort[i].dir>0 ? "▲" : "▼";
+  return finderSort.length>1 ? ` ${arrow}${i+1}` : ` ${arrow}`;
+}
+function toggleSort(key){
+  if(finderSort.length && finderSort[0].key===key){ finderSort[0].dir *= -1; }
+  else { finderSort = finderSort.filter(s=>s.key!==key); finderSort.unshift({key, dir:(key==="charName"||key==="kartName")?1:-1}); }
+  runFinder();
+}
+function applyFinderSort(out){
+  if(!finderSort.length){ out.sort((a,b)=> b._score-a._score); return; }
+  out.sort((a,b)=>{
+    for(const {key,dir} of finderSort){
+      let d;
+      if(key==="charName"||key==="kartName") d=String(a[key]).localeCompare(String(b[key]));
+      else d=val(a,key)-val(b,key);
+      if(d) return d*dir;
+    }
+    return b._score-a._score;
+  });
+}
 function statTh(){
-  let h="<th class='n'>Character</th><th class='n'>Vehicle</th>";
-  MAIN5.forEach(k=> h+=`<th>${STAT_BY[k].label}</th>`);
-  SIDE4.forEach((k,i)=> h+=`<th${i===0?" class='sep'":""}>${STAT_BY[k].label}</th>`);
+  const th=(key,label,cls="")=>`<th class="sortable${cls?" "+cls:""}" data-key="${key}">${label}${sortInd(key)}</th>`;
+  let h=th("charName","Character","n")+th("kartName","Vehicle","n");
+  MAIN5.forEach(k=> h+=th(k,STAT_BY[k].label));
+  SIDE4.forEach((k,i)=> h+=th(k,STAT_BY[k].label,i===0?"sep":""));
   return h;
 }
 function runFinder(){
   const o=currentBase();
   refreshBaseVals(o);
   const bi=+bChar.value, bk=+bKart.value, eps=1e-9;
-  const strict=document.getElementById("f-strict").checked;
   const reqs=STATS.map(s=>({key:s.key, op:(document.querySelector(`input[name="c-${s.key}"]:checked`)||{}).value||"na"})).filter(r=>r.op!=="na");
   const out=COMBOS.filter(c=>{
     if (c.ci===bi && c.ki===bk) return false;
     for (const r of reqs){ if(!passOp(r.op, val(c,r.key)-val(o,r.key), eps)) return false; }
-    if (strict){ let better=false; for (const s of STATS){ const d=c[s.key]-o[s.key]; if(d<-eps) return false; if(d>eps) better=true; } if(!better) return false; }
     return true;
   });
   const scoreKeys = reqs.length? reqs.map(r=>r.key) : STATS.map(s=>s.key);
   out.forEach(c=> c._score = scoreKeys.reduce((a,k)=> a+(val(c,k)-val(o,k)), 0));
-  out.sort((a,b)=> b._score-a._score);
+  applyFinderSort(out);
   let cnt=`${out.length} build(s) match`;
   let h="<thead><tr>"+statTh()+"</tr></thead><tbody>";
   out.slice(0,300).forEach(c=>{
@@ -383,7 +408,9 @@ function rebuildSelects(preserve){
 function renderAll(){ renderBuilder(); runFinder(); renderPareto(); }
 bChar.onchange = ()=>{ buildCombos(); renderAll(); };
 bKart.onchange = ()=>{ buildCombos(); renderAll(); };
-document.getElementById("f-strict").onchange = runFinder;
+document.getElementById("f-results").addEventListener("click", e=>{
+  const th=e.target.closest("th[data-key]"); if(th) toggleSort(th.dataset.key);
+});
 indiv.onchange = ()=>{ rebuildSelects(true); renderAll(); };
 
 /* ---------- init ---------- */
